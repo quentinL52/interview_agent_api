@@ -18,7 +18,8 @@ app = FastAPI(
     description="API for interview simulations.",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    redirect_slashes=True,
 )
 
 ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",") if os.getenv("CORS_ORIGINS") != "*" else ["*"]
@@ -29,7 +30,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    redirect_slashes=True,
 )
 
 class HealthCheck(BaseModel):
