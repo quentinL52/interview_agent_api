@@ -123,7 +123,8 @@ class GraphInterviewProcessor:
     # --- Context builders ---
     
     def _get_icebreaker_context(self, state: AgentState) -> str:
-        candidat = state["cv_data"].get("info_personnelle", {})
+        cv = state["cv_data"] 
+        prenom = cv.get("first_name", "Candidat")
         job = state["job_data"]
         
         # Extract Hobbies/Interests if available
@@ -143,7 +144,7 @@ class GraphInterviewProcessor:
         
         return f"""
         === CONTEXTE CANDIDAT ===
-        NOM: {candidat.get('nom', 'Candidat')} {candidat.get('first_name', '')}
+        PRENOM: {prenom}
         POSTE VISÉ: {job.get('poste', 'Non spécifié')}
         ENTREPRISE: {job.get('entreprise', 'Non spécifié')}
         
@@ -340,7 +341,7 @@ class GraphInterviewProcessor:
         
         # Extract first name
         cv_info = state["cv_data"].get("info_personnelle", {})
-        prenom = cv_info.get("prenom", "")
+        prenom = cv_info.get("first_name", "")
         
         # Get question limit
         nb_questions = QUESTIONS_PER_AGENT.get(agent_key, 2)
@@ -348,7 +349,7 @@ class GraphInterviewProcessor:
         try:
             instructions = prompt_template.format(
                 user_id=state["user_id"],
-                prenom=prenom,
+                first_name=prenom,
                 nb_questions=nb_questions,
                 job_description=json.dumps(state["job_data"], ensure_ascii=False),
                 poste=state["job_data"].get("poste", "Poste non spécifié"),
