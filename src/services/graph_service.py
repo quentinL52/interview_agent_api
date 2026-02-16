@@ -143,7 +143,7 @@ class GraphInterviewProcessor:
         
         return f"""
         === CONTEXTE CANDIDAT ===
-        NOM: {candidat.get('nom', 'Candidat')} {candidat.get('prenom', '')}
+        NOM: {candidat.get('nom', 'Candidat')} {candidat.get('first_name', '')}
         POSTE VISÉ: {job.get('poste', 'Non spécifié')}
         ENTREPRISE: {job.get('entreprise', 'Non spécifié')}
         
