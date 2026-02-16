@@ -1,0 +1,21 @@
+langchain
+langchain-openai
+langgraph
+langchain-core
+pydantic
+fastapi
+uvicorn
+python-dotenv
+crewai
+langtrace-python-sdk
+celery
+redis
+langchain-community
+transformers
+torch --extra-index-url https://download.pytorch.org/whl/cpu
+scikit-learn
+textstat
+chromadb
+sentence-transformers
+numpy
+textblob

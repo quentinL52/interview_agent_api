@@ -1,0 +1,97 @@
+consistency_task:
+  description: >
+    Analyse la conversation pour détecter la fraude.
+    Données d'intégrité: {cheat_metrics}
+    
+    Règles:
+    - Si 'ai_score' > 75 -> STOP/VETO.
+    - Si insultes/trolling -> STOP/VETO.
+  expected_output: "Statut Fraude (RAS, ALERTE, VETO) avec justification."
+  agent: consistency_analyst
+
+search_task:
+  description: >
+    Analyse l'écart CV vs Offre (Gap Analysis).
+    Données Gap Analysis: {gap_analysis}
+    
+    1. Confirme si c'est une RÉCONVERSION (basé sur 'is_reconversion').
+    2. Identifie les compétences manquantes (Hidden Skill Gaps).
+    3. Vérifie la présence des 'Action Verbs' de production.
+  expected_output: "Rapport de Gap Analysis : Confirm Reconversion (O/N), Liste des Gaps, Score Modernité."
+  agent: search_analyst
+
+tech_task:
+  description: >
+    Évaluation Technique Approfondie (Methodologie SOAR) adaptée au poste : {job_type}.
+    
+    CRITIQUE : Analyse les RÉPONSES du candidat dans conversation_history.
+    Ce que le candidat DIT prévaut sur ce qui est écrit dans le CV.
+    Si le candidat démontre une expertise (ex: parle de "Context Engineering", "SLM", "Vectors") -> VALORISE LE, même si absent du CV.
+    
+    1. Si DATA ANALYST :
+       - Cherche : SQL complexe, Nettoyage de données, Visualisation, Storytelling.
+       - Ignore : CI/CD, Docker, Kubernetes.
+    2. Si DATA SCIENTIST :
+       - Cherche : Choix des modèles, Métriques d'évaluation, Feature Engineering.
+    3. Si DATA ENGINEER :
+       - Cherche : CI/CD, Code Quality, Scalabilité, Monitoring.
+       
+    Utilise SOAR (Situation, Obstacle, Action, Résultat).
+    Note sur 10. NE Mets JAMAIS 0 si le candidat a les bases mais manque d'expérience pro.
+  expected_output: "Évaluation Tech détaillée + Note /100."
+  agent: tech_expert
+
+business_task:
+  description: >
+    Évaluation Stratégique & Business (ROLS & PCD).
+    
+    1. Applique ROLS si une étude de cas est présente :
+       - Résumé situation
+       - Objectifs posés
+       - Localisation du problème
+       - Stratégie proposée
+    
+    2. Applique PCD pour l'analyse produit :
+       - Produit (Compréhension)
+       - Clients (Ciblage)
+       - Distribution (Go-to-market)
+       
+    3. Cherche le "So What?" : Le candidat lie-t-il la tech au business ?
+  expected_output: "Analyse ROLS/PCD structurée + Note Business /100."
+  agent: business_evaluator
+
+reporting_task:
+  description: >
+    Synthèse Décisionnelle Finale avec Scoring Dynamique.
+    
+    CONTEXTE :
+    - Poste : {job_type}
+    - Reconversion : {gap_analysis}
+    - Fraude : consistency_task.output
+    
+    RÈGLES DE SCORING STRICTES :
+    1. Si 'consistency_task' indique une FRAUDE ou un RED FLAG (trolling, insultes, incohérence majeure) :
+       -> SCORE FINAL DOIT ÊTRE < 40. REJET IMMÉDIAT.
+    2. Si Pas de Red Flag :
+       -> Utilisez toute l'échelle (10-90).
+       -> Un débutant motivé mérite ~50-60.
+       -> Un expert mérite > 80.
+    
+    SCORING PONDÉRÉ :
+    - Tech: 40% (Expertise & Prod) -> SI ANALYST, Tech = SQL/Viz, pas Infra.
+    - Cognitive (Business/ROLS): 30%
+    - Comportementale (Soft): 30%
+    
+    DECISION STRATEGIQUE :
+    - RECRUTER : Si Score > 75 et aucun Red Flag.
+    - APPROFONDIR : Si Score 50-75 ou doute sur un Gap.
+    - REJETER : Si Score < 50 ou Veto Fraude.
+    
+    Génère le JSON final 'FeedbackOutput'.
+  expected_output: "JSON complet respectant le schéma FeedbackOutput."
+  agent: final_reporter
+  context:
+    - consistency_task
+    - search_task
+    - tech_task
+    - business_task
