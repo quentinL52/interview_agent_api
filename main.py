@@ -21,11 +21,11 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8000").split(",")
+ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",") if os.getenv("CORS_ORIGINS") != "*" else ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,5 +69,5 @@ async def simulate_interview(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8002)) 
+    port = int(os.getenv("PORT", 7860)) 
     uvicorn.run(app, host="0.0.0.0", port=port)
