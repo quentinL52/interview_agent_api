@@ -1,24 +1,24 @@
-# Dockerfile
 FROM python:3.11-slim
 
 RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 
+# Définir explicitement le dossier de données NLTK pour éviter les surprises
+ENV NLTK_DATA="/home/user/nltk_data"
+
 WORKDIR /app
 
-# Copier les fichiers de requirements
 COPY --chown=user ./requirements.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-# Copier tout le code
-COPY --chown=user . /app
+# Créer le dossier et télécharger les corpus spécifiques
+RUN mkdir -p /home/user/nltk_data && \
+    python -m textblob.download_corpora && \
+    python -m nltk.downloader punkt_tab
 
-# Rendre le script de démarrage exécutable
+COPY --chown=user . /app
 RUN chmod +x /app/start.sh
 
-# Exposer le port 7860 (requis par HF Spaces)
 EXPOSE 7860
-
-# Lancer l'application via le script de démarrage
 CMD ["./start.sh"]
