@@ -11,6 +11,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
 class InterviewAnalysisArgs(BaseModel):
     """Arguments for the trigger_interview_analysis tool."""
@@ -49,7 +50,13 @@ def trigger_interview_analysis(user_id: str, job_offer_id: str, job_description:
         }
         
         try:
-            response = httpx.post(f"{BACKEND_API_URL}/api/v1/feedback/", json=feedback_payload, timeout=30.0)
+            headers = {"X-Internal-API-Key": INTERNAL_API_KEY} if INTERNAL_API_KEY else {}
+            response = httpx.post(
+                f"{BACKEND_API_URL}/api/v1/feedback/", 
+                json=feedback_payload, 
+                headers=headers,
+                timeout=30.0
+            )
             response.raise_for_status()
             logger.info("Feedback saved to Backend API successfully.")
         except Exception as api_err:
