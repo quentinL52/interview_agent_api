@@ -1,0 +1,121 @@
+{
+    "_id": {
+        "$oid": "69946f80c8bcf8b152b53a6a"
+    },
+    "user_id": "user_...",
+    "parsed_data": {
+        "candidat": {
+            "first_name": "...",
+            "compétences": {
+                "hard_skills": [
+                    "...",
+                    "..."
+                ],
+                "soft_skills": [
+                    "...",
+                    "..."
+                ],
+                "skills_with_context": [
+                    {
+                        "skill": "...",
+                        "context": "entreprise"
+                    },
+                    {
+                        "skill": "...",
+                        "context": "projet"
+                    },
+                    {
+                        "skill": "...",
+                        "context": "academique"
+                    },
+                    {
+                        "skill": "...",
+                        "context": "sans contexte"
+                    }
+                ]
+            },
+            "expériences": [
+                {
+                    "Poste": "...",
+                    "Entreprise": "...",
+                    "start_date": "Déc. 2024",
+                    "end_date": "Déc. 2025",
+                    "responsabilités": [
+                        "..."
+                    ]
+                },
+                {
+                    "Poste": "...",
+                    "Entreprise": "...",
+                    "start_date": "2010",
+                    "end_date": "2023",
+                    "responsabilités": [
+                        "...",
+                        "..."
+                    ]
+                }
+            ],
+            "reconversion": {
+                "is_reconversion": true,
+                "context": "..."
+            },
+            "projets": {
+                "professional": [
+                    {
+                        "title": "...",
+                        "technologies": [
+                            "...",
+                            "..."
+                        ],
+                        "outcomes": [
+                            "...",
+                            "..."
+                        ],
+                        "domaine metier": "..."
+                    },
+                    {
+                        "title": "...",
+                        "technologies": [
+                            "...",
+                            "..."
+                        ],
+                        "outcomes": [
+                            "..."
+                        ],
+                        "domaine metier": "..."
+                    }
+                ],
+                "personal": []
+            },
+            "formations": [
+                {
+                    "degree": "...",
+                    "institution": "...",
+                    "start_date": "Nov. 2024",
+                    "end_date": "Déc. 2025"
+                },
+                {
+                    "degree": "...",
+                    "institution": "...",
+                    "start_date": "Fév. 2024",
+                    "end_date": "Juil. 2024"
+                }
+            ],
+            "etudiant": {
+                "is_etudiant": false,
+                "niveau_etudes": "bac+3",
+                "specialite": "...",
+                "latest_education_end_date": "2025-12-01"
+            },
+            "langues": [
+                {
+                    "langue": "Français"
+                },
+                {
+                    "langue": "Anglais"
+                }
+            ]
+        }
+    },
+    "upload_date": "2026-02-17T13:39:12.984629"
+}

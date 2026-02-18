@@ -23,4 +23,4 @@ RÈGLES DE STYLE :
 
 CONTEXTE :
 {user_id}
-{job_description}
+

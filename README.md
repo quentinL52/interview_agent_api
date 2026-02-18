@@ -19,3 +19,7 @@ Cette API permet de simuler des entretiens d'embauche avec des agents IA intelli
 ## Configuration
 
 Assurez-vous de configurer vos variables d'environnement dans les Settings du Space Hugging Face.
+
+## Documentation
+
+Une documentation détaillée de l'API (points d'entrée, schémas de données et exemples) est disponible dans le fichier [API_DOCUMENTATION.md](API_DOCUMENTATION.md).

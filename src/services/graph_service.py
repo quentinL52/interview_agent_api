@@ -22,7 +22,7 @@ PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 
 # Number of questions per agent
 QUESTIONS_PER_AGENT = {
-    "icebreaker": 2,
+    "icebreaker": 3,
     "auditeur": 3,
     "enqueteur": 2,
     "stratege": 2,
@@ -32,9 +32,6 @@ QUESTIONS_PER_AGENT = {
 AGENT_ORDER = ["icebreaker", "auditeur", "enqueteur", "stratege", "projecteur"]
 
 
-EXIT_MESSAGE = """L'entretien est maintenant terminé.
-
-Merci pour cet échange. Je finalise l'analyse de votre candidature, votre rapport sera disponible dans quelques instants."""
 
 
 class AgentState(TypedDict):
@@ -110,16 +107,14 @@ class GraphInterviewProcessor:
         
         for agent in AGENT_ORDER:
             agent_questions = QUESTIONS_PER_AGENT[agent]
-            
-            # Check if user is still within this agent's range
             if user_msg_count < cumulative + agent_questions:
                 return agent, False
             
             cumulative += agent_questions
-        
-        # Past all agents -> END (projecteur completed)
         return "end", True
 
+    # --- Context builders ---
+    
     # --- Context builders ---
     
     def _get_icebreaker_context(self, state: AgentState) -> str:
@@ -128,30 +123,69 @@ class GraphInterviewProcessor:
         job = state["job_data"]
         
         # Extract Hobbies/Interests if available
-        hobbies = ", ".join(state["cv_data"].get("centres_interet", []))
+        hobbies = ", ".join(cv.get("centres_interet", []))
         if not hobbies:
             hobbies = "Non spécifiés"
             
-        # Extract Reconversion Context
-        reconversion_data = state["cv_data"].get("reconversion", {})
+        # --- Extract Reconversion Context ---
+        reconversion_data = cv.get("reconversion", {})
         is_reco = reconversion_data.get("is_reconversion", False)
-        reco_context = "OUI" if is_reco else "NON"
+        reco_context_str = "NON"
+        if is_reco:
+            original_job = reconversion_data.get("context", "Ancien métier non spécifié")
+            reco_context_str = f"OUI. Contexte transition: {original_job}"
         
-        # Extract Student Context
-        etudiant_data = state["cv_data"].get("etudiant", {})
+        # --- Extract Student Context ---
+        etudiant_data = cv.get("etudiant", {})
         is_etudiant = etudiant_data.get("is_etudiant", False)
-        etudiant_context = f"OUI ({etudiant_data.get('niveau_etudes', '')})" if is_etudiant else "NON"
         
+        niveau_etudes = etudiant_data.get("niveau_etudes", "Non spécifié")
+        specialite = etudiant_data.get("specialite", "Non spécifiée")
+        
+        etudiant_context_str = "NON"
+        if is_etudiant:
+            etudiant_context_str = f"OUI. Niveau: {niveau_etudes}, Spécialité: {specialite}"
+
+        # --- Internship / Alternance Detection ---
+        job_title = job.get('poste', '').lower()
+        contract_type = job.get('contrat', '').lower()
+        is_internship_or_alternance = any(k in job_title or k in contract_type for k in ['stage', 'alternance', 'apprentissage', 'contrat pro'])
+        
+        type_contrat_str = "CDI/CDD Standard"
+        if is_internship_or_alternance:
+             type_contrat_str = "STAGE / ALTERNANCE"
+
+        # --- Priority Logic (Student vs Reconversion) ---
+        focus_point = "STANDARD"
+        if is_reco:
+            focus_point = "RECONVERSION"
+        elif is_etudiant:
+            focus_point = "ETUDIANT"
+            
+        # --- Background Mismatch Detection (if not student/reco) ---
+        last_exp_title = ""
+        experiences = cv.get("expériences", [])
+        if experiences:
+            last_exp_title = experiences[0].get("Poste", "")
+            
         return f"""
         === CONTEXTE CANDIDAT ===
         PRENOM: {prenom}
         POSTE VISÉ: {job.get('poste', 'Non spécifié')}
         ENTREPRISE: {job.get('entreprise', 'Non spécifié')}
+        TYPE DE CONTRAT DÉTECTÉ: {type_contrat_str}
         
         === DOSSIER PERSONNEL ===
         CENTRES D'INTÉRÊT: {hobbies}
-        EN RECONVERSION ?: {reco_context}
-        ÉTUDIANT ?: {etudiant_context}
+        
+        === ANALYSE PROFIL ===
+        IS_RECONVERSION: {reco_context_str}
+        IS_ETUDIANT: {etudiant_context_str}
+        DERNIER POSTE OCCUPÉ: {last_exp_title}
+        
+        === FOCUS PRIORITAIRE ===
+        POINT D'ENTRÉE SUGGÉRÉ: {focus_point}
+        (Si RECONVERSION -> Creuser motivation transition. Si ETUDIANT -> Valider niveau/spécialité. Si STANDARD -> Vérifier cohérence parcours/poste)
         """
 
     def _get_auditeur_context(self, state: AgentState) -> str:
@@ -190,9 +224,14 @@ class GraphInterviewProcessor:
             """
             
         return f"""
-        === CONTEXTE TECHNIQUE ===
-        MISSION DU POSTE: {job.get('mission', '')}
-        EXPÉRIENCES CANDIDAT: {experiences}
+        === CONTEXTE POSTE (TECHNIQUE) ===
+        MISSION: {job.get('mission', '')}
+        DESCRIPTION SYNTHÉTIQUE: {job.get('description_nettoyee', '')}
+        COMPÉTENCES REQUISES: {job.get('competences', '')}
+        PÔLE: {job.get('pole', '')}
+
+        === CONTEXTE TECHNIQUE CANDIDAT ===
+        EXPÉRIENCES: {experiences}
         PROJETS SIGNIFICATIFS:
         {projets_str}
         
@@ -203,6 +242,7 @@ class GraphInterviewProcessor:
 
     def _get_enqueteur_context(self, state: AgentState) -> str:
         cv = state["cv_data"]
+        job = state["job_data"]
         soft_skills = ", ".join(cv.get("compétences", {}).get("soft_skills", []))
         reconversion = cv.get("reconversion", {})
         is_reco = reconversion.get("is_reconversion", False)
@@ -221,9 +261,13 @@ class GraphInterviewProcessor:
             """
 
         return f"""
-        === CONTEXTE COMPORTEMENTAL ===
+        === CONTEXTE POSTE (HUMAIN) ===
+        PROFIL RECHERCHÉ: {job.get('profil_recherche', '')}
+        CULTURE/VALEURS (PÔLE): {job.get('pole', '')}
+
+        === CONTEXTE COMPORTEMENTAL CANDIDAT ===
         SOFT SKILLS: {soft_skills}
-        {reco_txt}
+        RECONVERSION: {reco_txt}
         {tech_context}
         """
 
@@ -243,7 +287,7 @@ class GraphInterviewProcessor:
         return f"""
         === CONTEXTE SJT (MISE EN SITUATION) ===
         MISSION: {job.get('mission', '')}
-        CULTURE/VALEURS: {job.get('profil_recherche', '')}
+        PROFIL RECHERCHÉ: {job.get('profil_recherche', '')}
         {beh_context}
         """
 
@@ -252,7 +296,8 @@ class GraphInterviewProcessor:
         return f"""
         === CONTEXTE PROJECTION ===
         ENTREPRISE: {job.get('entreprise', '')}
-        DESCRIPTION POSTE: {job.get('description_poste', '')}
+        DESCRIPTION POSTE (NETTOYÉE): {job.get('description_nettoyee', '')}
+        PÔLE: {job.get('pole', '')}
         
         NOTE: C'est la dernière question de l'entretien.
         """
@@ -284,8 +329,6 @@ class GraphInterviewProcessor:
              
         # Check for Final Report extraction
         if should_end:
-            # Check if we missed situation data (if flow ended abruptly?) - assuming linear flow for now.
-            # Only trigger if we haven't tried yet (flag in context)
             if not state.get("situation_data") and not context_updates.get("situation_attempted"):
                  extract_target = "situation"
             elif not state.get("simulation_report") and not context_updates.get("report_attempted"):
@@ -351,7 +394,6 @@ class GraphInterviewProcessor:
                 user_id=state["user_id"],
                 first_name=prenom,
                 nb_questions=nb_questions,
-                job_description=json.dumps(state["job_data"], ensure_ascii=False),
                 poste=state["job_data"].get("poste", "Poste non spécifié"),
                 entreprise=state["job_data"].get("entreprise", "Entreprise confidentielle")
             )
@@ -400,39 +442,46 @@ class GraphInterviewProcessor:
         except Exception as e:
             logger.error(f"Failed to enqueue analysis task: {e}")
         
-        # Generate contextual exit message
+        # Generate contextual dynamic exit message
         last_user_msg = state["messages"][-1].content if state["messages"] and isinstance(state["messages"][-1], HumanMessage) else ""
         
-        if last_user_msg:
-            closing_prompt = (
-                f"Tu es un recruteur professionnel (RONI). L'entretien est terminé.\n"
-                f"Le candidat vient de dire : \"{last_user_msg}\"\n"
-                f"Réponds-y brièvement et aimablement (une phrase max). Si c'est une question, donnes-y une réponse simple.\n"
-                f"Ne dis PAS au revoir tout de suite, contente-toi de répondre au dernier point soulevé."
-            )
-            try:
-                ai_response = self.llm.invoke([SystemMessage(content=closing_prompt)])
-                # Force append the exit message to guarantee trigger detection
-                final_content = f"{ai_response.content}\n\n{EXIT_MESSAGE}"
-            except Exception as e:
-                logger.error(f"Error generating closing message: {e}")
-                final_content = EXIT_MESSAGE
-        else:
-            final_content = EXIT_MESSAGE
+        cv = state.get("cv_data", {})
+        prenom = cv.get("info_personnelle", {}).get("first_name", "Candidat")
+        job = state.get("job_data", {})
+        poste = job.get("poste", "le poste visé")
+        entreprise = job.get("entreprise", "notre entreprise")
+
+        closing_prompt = (
+            f"Tu es RONI, un recruteur expert en IA. L'entretien pour le poste de {poste} chez {entreprise} est terminé.\n"
+            f"Le candidat s'appelle {prenom}.\n\n"
+            f"Dernier message du candidat : \"{last_user_msg}\"\n\n"
+            f"Tâche : Rédige le message de clôture de l'entretien.\n"
+            f"Consignes obligatoires :\n"
+            f"1. Si le candidat a posé une question ou fait une remarque finale, réponds-y brièvement et aimablement.\n"
+            f"2. Remercie {prenom} pour cet échange.\n"
+            f"3. Informe-le que l'analyse complète de l'entretien est en cours et que son rapport détaillé sera disponible dans quelques instants.\n"
+            f"4. Adopte un ton chaleureux, professionnel et encourageant.\n"
+            f"5. IMPORTANT : NE POSE AUCUNE QUESTION. Ce message marque la fin définitive de la discussion.\n"
+            f"6. Fais varier la formulation pour ne pas être robotique."
+        )
+        
+        try:
+            ai_response = self.llm.invoke([SystemMessage(content=closing_prompt)])
+            final_content = ai_response.content
+        except Exception as e:
+            logger.error(f"Error generating closing message: {e}")
+            final_content = "Merci pour cet échange. Votre rapport d'analyse sera disponible dans quelques instants."
 
         return {"messages": [AIMessage(content=final_content)], "context": {"next_dest": "end_interview"}}
 
     # --- Routing ---
     
     def _route_next_step(self, state: AgentState) -> str:
-        # Check if extraction is needed
         if state.get("context", {}).get("extract_target"):
             return "extraction_node"
             
         dest = state.get("context", {}).get("next_dest", "icebreaker")
         if dest == "end_interview":
-            # Ensure we have the report before finishing. Loop back to orchestrator.
-            # Only loop back if we haven't attempted to extract the report yet.
             if not state.get("simulation_report") and not state.get("context", {}).get("report_attempted"):
                  return "orchestrator"
             return "final_analysis"
@@ -444,7 +493,7 @@ class GraphInterviewProcessor:
         graph = StateGraph(AgentState)
         
         graph.add_node("orchestrator", self._orchestrator_node)
-        graph.add_node("extraction_node", self._extraction_node)  # Add extraction node
+        graph.add_node("extraction_node", self._extraction_node)  
         graph.add_node("icebreaker_agent", self._icebreaker_node)
         graph.add_node("auditeur_agent", self._auditeur_node)
         graph.add_node("enqueteur_agent", self._enqueteur_node)
@@ -462,7 +511,7 @@ class GraphInterviewProcessor:
             "stratege_agent": "stratege_agent",
             "projecteur_agent": "projecteur_agent",
             "final_analysis": "final_analysis",
-            "orchestrator": "orchestrator"  # Added loopback
+            "orchestrator": "orchestrator"  
         }
         
         graph.add_conditional_edges("orchestrator", self._route_next_step, routing_map)
