@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import TypedDict, Annotated, Dict, Any, List, Optional
 
+import redis
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
@@ -70,6 +71,9 @@ class GraphInterviewProcessor:
         self.prompts = self._load_all_prompts()
         self.llm = ChatOpenAI(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o-mini", temperature=0.7)
         self.extractor = InterviewAgentExtractor(self.llm)
+        
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        self.redis_client = redis.Redis.from_url(redis_url, decode_responses=True)
         
         self.graph = self._build_graph()
         logging.info("RONI Graph initialisé.")
@@ -542,7 +546,47 @@ class GraphInterviewProcessor:
             "cheat_metrics": cheat_metrics or {}
         }
         
+        # Load state from Redis
+        redis_key = f"interview_state:{self.user_id}"
+        saved_state_json = self.redis_client.get(redis_key)
+        if saved_state_json:
+            try:
+                saved_state = json.loads(saved_state_json)
+                initial_state["context"] = saved_state.get("context", {})
+                if saved_state.get("icebreaker_data"):
+                    initial_state["icebreaker_data"] = IceBreakerOutput(**saved_state["icebreaker_data"])
+                if saved_state.get("technical_data"):
+                    initial_state["technical_data"] = TechnicalOutput(**saved_state["technical_data"])
+                if saved_state.get("behavioral_data"):
+                    initial_state["behavioral_data"] = BehavioralOutput(**saved_state["behavioral_data"])
+                if saved_state.get("situation_data"):
+                    initial_state["situation_data"] = SituationOutput(**saved_state["situation_data"])
+                if saved_state.get("simulation_report"):
+                    initial_state["simulation_report"] = SimulationReport(**saved_state["simulation_report"])
+            except Exception as e:
+                logger.error(f"Failed to load state from Redis: {e}")
+        
         final_state = self.graph.invoke(initial_state)
+        
+        # Save updated state to Redis
+        try:
+            state_to_save = {
+                "context": final_state.get("context", {}),
+            }
+            if final_state.get("icebreaker_data"):
+                state_to_save["icebreaker_data"] = final_state["icebreaker_data"].dict()
+            if final_state.get("technical_data"):
+                state_to_save["technical_data"] = final_state["technical_data"].dict()
+            if final_state.get("behavioral_data"):
+                state_to_save["behavioral_data"] = final_state["behavioral_data"].dict()
+            if final_state.get("situation_data"):
+                state_to_save["situation_data"] = final_state["situation_data"].dict()
+            if final_state.get("simulation_report"):
+                state_to_save["simulation_report"] = final_state["simulation_report"].dict()
+                
+            self.redis_client.setex(redis_key, 86400, json.dumps(state_to_save)) # Expires in 24 hours
+        except Exception as e:
+            logger.error(f"Failed to save state to Redis: {e}")
         
         if not final_state or not final_state['messages']:
             return {"response": "Erreur système.", "status": "finished"}
