@@ -1,25 +1,25 @@
----
-title: Interview Agents API
-emoji: 🎤
-colorFrom: blue
-colorTo: purple
-sdk: docker
-app_file: main.py
-pinned: false
----
+Un agent conversationnel intelligent sous forme d'API REST dédié à la simulation et à l'évaluation d'entretiens. Ce service s'appuie sur l'IA pour générer des questions dynamiques, analyser en temps réel les réponses des candidats et fournir une évaluation objective de leurs compétences.
 
-# Interview Agents API
+Pensé pour s'intégrer de manière fluide au sein de systèmes multi-agents ou d'architectures orientées services, ce module est l'outil idéal pour automatiser les pré-qualifications et valoriser la diversité des parcours professionnels.
 
-API de simulation d'entretiens avec agents IA utilisant LangGraph.
+## 🚀 Fonctionnalités Principales
 
-## Description
+* **Simulation Interactive** : Génération de scénarios d'entretien adaptatifs et évolutifs en fonction du poste visé et du déroulé de la conversation.
+* **Évaluation Sémantique** : Analyse contextuelle des réponses pour capter avec précision les compétences techniques et les soft skills du candidat.
+* **Architecture Modulaire** : Conception "API-first" facilitant l'orchestration par d'autres frameworks ou le dialogue avec d'autres agents autonomes.
+* **Conteneurisation Complète** : Déploiement standardisé, isolée et reproductible via Docker, idéal pour l'auto-hébergement et l'intégration sur VPS.
 
-Cette API permet de simuler des entretiens d'embauche avec des agents IA intelligents.
+## 🛠️ Stack Technique
 
-## Configuration
+* **Langage** : Python 3.x
+* **Déploiement** : Docker (Dockerfile inclus)
+* **Format d'échange** : JSON
 
-Assurez-vous de configurer vos variables d'environnement dans les Settings du Space Hugging Face.
+## ⚙️ Prérequis et Configuration
 
-## Documentation
+Le service nécessite la configuration de variables d'environnement (ex: clés d'API pour les LLM) pour fonctionner correctement.
 
-Une documentation détaillée de l'API (points d'entrée, schémas de données et exemples) est disponible dans le fichier [API_DOCUMENTATION.md](API_DOCUMENTATION.md).
+1. **Cloner le dépôt :**
+```bash
+   git clone [https://github.com/quentinL52/interview_agent_api.git](https://github.com/quentinL52/interview_agent_api.git)
+   cd interview_agent_api
